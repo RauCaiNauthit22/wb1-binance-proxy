@@ -24,10 +24,11 @@ app.all('/api/*', async (req, res) => {
     
     console.log(`[${req.method}] Proxying to: ${binanceUrl}`);
     
-    // Gửi yêu cầu tới Binance với timeout ngắn hơn và retry logic
+    // Retry logic
     let response;
     let attempts = 0;
     const maxAttempts = 3;
+    const retryDelay = 1000; // 1 giây giữa các lần thử
     while (attempts < maxAttempts) {
       try {
         response = await axios({
@@ -37,14 +38,16 @@ app.all('/api/*', async (req, res) => {
           headers: {
             'User-Agent': 'WB1-Proxy/1.0.0'
           },
-          timeout: 5000 // Timeout 5 giây mỗi lần thử
+          timeout: 3000 // Timeout 3 giây để phản hồi nhanh hơn
         });
-        break; // Thoát vòng lặp nếu thành công
+        break;
       } catch (err) {
         attempts++;
-        if (attempts === maxAttempts) throw err;
+        if (attempts === maxAttempts) {
+          throw err;
+        }
         console.log(`Retrying (${attempts}/${maxAttempts}) for ${binanceUrl}`);
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Đợi 1 giây trước khi thử lại
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
       }
     }
     
