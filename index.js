@@ -5,13 +5,12 @@ const cors = require('cors');
 const app = express();
 app.use(cors());
 
-app.get('/', (req, res) => {
-  res.send('✅ WB1 Proxy Server is Running!');
-});
-
+// Proxy endpoint
 app.get('/api/*', async (req, res) => {
+  const binancePath = req.originalUrl.replace('/api', '');
+  const binanceUrl = `https://api.binance.com${binancePath}`;
+  
   try {
-    const binanceUrl = `https://api.binance.com${req.originalUrl.replace('/api', '')}`;
     const response = await axios.get(binanceUrl);
     res.json(response.data);
   } catch (err) {
@@ -21,5 +20,5 @@ app.get('/api/*', async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`WB1 Proxy running on port ${PORT}`);
+  console.log(`✅ WB1 Proxy Server is Running on port ${PORT}`);
 });
