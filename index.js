@@ -4,14 +4,15 @@ const cors = require('cors');
 
 const app = express();
 
-// Cấu hình CORS cho phép tất cả origin
+// Cấu hình CORS
 app.use(cors({ origin: '*' }));
 
-// Middleware để parse JSON body
+// Parse JSON body
 app.use(express.json());
 
 // Route kiểm tra server
 app.get('/', (req, res) => {
+  console.log('Received request to root endpoint');
   res.send('✅ WB1 Proxy Server is Running!');
 });
 
@@ -23,7 +24,6 @@ app.all('/api/*', async (req, res) => {
     
     console.log(`[${req.method}] Proxying to: ${binanceUrl}`);
     
-    // Gửi yêu cầu tới Binance với timeout và header tối thiểu
     const response = await axios({
       method: req.method,
       url: binanceUrl,
@@ -31,9 +31,10 @@ app.all('/api/*', async (req, res) => {
       headers: {
         'User-Agent': 'WB1-Proxy/1.0.0'
       },
-      timeout: 5000 // Timeout 5 giây
+      timeout: 10000 // Tăng timeout lên 10 giây
     });
     
+    console.log(`Successfully proxied to ${binanceUrl}`);
     res.json(response.data);
   } catch (err) {
     console.error(`Error proxying to ${binanceUrl}:`, err.message);
@@ -47,8 +48,28 @@ app.all('/api/*', async (req, res) => {
   }
 });
 
-// Lắng nghe trên cổng do Railway cung cấp
+// Xử lý lỗi không bắt được
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err.message);
+  res.status(500).json({
+    status: 500,
+    error: 'Server error',
+    message: err.message
+  });
+});
+
+// Lắng nghe trên cổng và host do Railway yêu cầu
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`WB1 Proxy running on port ${PORT}`);
+const HOST = '0.0.0.0';
+app.listen(PORT, HOST, () => {
+  console.log(`WB1 Proxy running on ${HOST}:${PORT}`);
+});
+
+// Xử lý lỗi khi server khởi động
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err.message);
+});
+
+process.on('unhandledRejection', (err) => {
+  console.error('Unhandled Rejection:', err.message);
 });
